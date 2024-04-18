@@ -1,8 +1,13 @@
 #ifndef GAME_H
 #define GAME_H
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include "Base.h"
 #include "Notice.h"
 #include "View.h"
-class Game: public Notice, public View {
+
+class Game: public Base, public Notice, public View {
  int game_level;
  bool exit_game;
 
@@ -49,15 +54,71 @@ class Game: public Notice, public View {
  }
 
  void easyLevel(){
-  std::cout << "Easy";
+  start(3);
  }
 
  void mediumLevel(){
-  std::cout << "Medium";
+  start(7);
  }
 
  void hardLevel(){
-  std::cout << "Hard";
+  start(15);
+ }
+
+ std::vector<int> generateRangeRandomNumbers(int limit){
+  std::srand(std::time(nullptr));
+  std::vector<int> randomNumbers;
+  int counter = 1;
+
+  do {
+   int randomNumber = std::rand() % 100 + 1;
+   bool duplicate = false;
+
+   // checking if the random number already exists
+   for(int i = 0; i < randomNumbers.size(); ++i){
+    if(randomNumbers[i] == randomNumber){
+     duplicate = true;
+     break;
+    }
+   }
+
+   if(!duplicate){
+     randomNumbers.push_back(randomNumber);
+     counter++;
+   }
+   
+  } while(counter <= limit);
+
+  return randomNumbers;
+ }
+
+ std::string displayRandomRangeNumbers(std::vector<int> randomNumbers){
+  std::string randomNumbersDisplay;
+ 
+  randomNumbersDisplay =  "[ ";
+
+  for (int i = 0; i < randomNumbers.size(); ++i)
+   randomNumbersDisplay += std::to_string(randomNumbers[i]) + " ";
+
+  randomNumbersDisplay +=  "]";
+
+  return randomNumbersDisplay;
+ }
+
+ void start(int limit){
+  int user_guess, computer_chosen_number, random_index;
+  std::vector<int> random_numbers = generateRangeRandomNumbers(limit);
+  random_index = std::rand() % random_numbers.size();
+  computer_chosen_number = random_numbers[random_index];
+
+  std::cout << "\n\tEnter Your Guess Number from: " << ANSI_COLOR_GREEN << displayRandomRangeNumbers(random_numbers) << ANSI_COLOR_RESET << ": ";
+  std::cin >> user_guess;
+
+  if(user_guess == computer_chosen_number){
+   std::cout << ANSI_COLOR_GREEN << "\n\tYou Win!" << ANSI_COLOR_RESET;
+  }else{
+   std::cout << ANSI_COLOR_RED << "\n\tComputer Wins!" << ANSI_COLOR_RESET;
+  }
  }
 
  std::string displayMenu(){
