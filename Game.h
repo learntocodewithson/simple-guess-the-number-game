@@ -8,13 +8,15 @@
 #include "View.h"
 
 class Game: public Base, public Notice, public View {
- int game_level;
+ int game_level, user_win_count, computer_win_count, round_counter;
  bool exit_game;
 
  public:
  Game(std::string t = ""){
   title = t;
   exit_game = false;
+  user_win_count = computer_win_count = round_counter= 0;
+  
  }
 
  int main(){
@@ -53,16 +55,30 @@ class Game: public Base, public Notice, public View {
    
  }
 
+ void startNow(int limit, int win_limit, std::string level){
+  std::cout << ANSI_COLOR_BLUE << "\n\tYou choose " << level << " level. Whoever got " << win_limit << " wins first, will be the winner." << std::endl << ANSI_COLOR_RESET;
+  do {
+   round_counter++;
+   startTheGame(limit);
+  } while(user_win_count != win_limit && computer_win_count != win_limit);
+
+  if(user_win_count == win_limit){
+    setSuccessNotice("\n\tCongratulations, You Win!");
+  }else {
+    setErrorNotice("\n\tComputer Wins!, Better luck next time! :)");
+  }
+ }
+
  void easyLevel(){
-  start(3);
+  startNow(3, 3, "easy");
  }
 
  void mediumLevel(){
-  start(7);
+  startNow(7, 5, "medium");
  }
 
  void hardLevel(){
-  start(15);
+  startNow(10, 7, "hard");
  }
 
  std::vector<int> generateRangeRandomNumbers(int limit){
@@ -105,20 +121,26 @@ class Game: public Base, public Notice, public View {
   return randomNumbersDisplay;
  }
 
- void start(int limit){
+ void startTheGame(int limit){
   int user_guess, computer_chosen_number, random_index;
   std::vector<int> random_numbers = generateRangeRandomNumbers(limit);
   random_index = std::rand() % random_numbers.size();
   computer_chosen_number = random_numbers[random_index];
 
+  std::cout << ANSI_COLOR_ORANGE << "\n\tRound " << round_counter << ANSI_COLOR_RESET;
   std::cout << "\n\tEnter Your Guess Number from: " << ANSI_COLOR_GREEN << displayRandomRangeNumbers(random_numbers) << ANSI_COLOR_RESET << ": ";
   std::cin >> user_guess;
 
   if(user_guess == computer_chosen_number){
-   std::cout << ANSI_COLOR_GREEN << "\n\tYou Win!" << ANSI_COLOR_RESET;
+   user_win_count++;
+  //  std::cout << ANSI_COLOR_GREEN << "\n\tYou Win!" << ANSI_COLOR_RESET;
   }else{
-   std::cout << ANSI_COLOR_RED << "\n\tComputer Wins!" << ANSI_COLOR_RESET;
+   computer_win_count++;
+  //  std::cout << ANSI_COLOR_RED << "\n\tComputer Wins!" << ANSI_COLOR_RESET;
   }
+
+  std::cout << ANSI_COLOR_GREEN << "\n\tUser Win: " << user_win_count << ANSI_COLOR_RESET;
+  std::cout << ANSI_COLOR_RED << "\n\tComputer Win: " << computer_win_count << std::endl << ANSI_COLOR_RESET;
  }
 
  std::string displayMenu(){
