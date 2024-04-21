@@ -3,20 +3,28 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include<sstream>
+#include<fstream>
 #include "Base.h"
 #include "Notice.h"
 #include "View.h"
 
+struct KeyValuePair {
+  std::string key;
+  std::string value;
+};
+
 class Game: public Base, public Notice, public View {
  int game_level, user_win_count, computer_win_count, round_counter;
  bool exit_game;
+ std::vector<KeyValuePair> ENV;
 
  public:
  Game(std::string t = ""){
   title = t;
   exit_game = false;
   user_win_count = computer_win_count = round_counter= 0;
-  
+  loadEnv();
  }
 
  int main(){
@@ -26,33 +34,75 @@ class Game: public Base, public Notice, public View {
  }
 
  void call(){
-   system("clear");
-   
-   std::cout << displayTitle();
-   std::cout << displayMenu();
+   do {
+    system("clear");
 
-   getUserInput();
+    std::cout << displayTitle();
+    std::cout << displayMenu();
 
-   switch (game_level)
-   {
-   case 1:
-    easyLevel(); // 3 range of numbers
-    break;
-   case 2:
-    mediumLevel(); // 5 range of numbers
-    break;
-   case 3:
-    hardLevel(); // 10 range of numbers
-    break;
-   default:
-    exit_game = true;
-    setSuccessNotice("\n\tThank you for using the game. Bye!");
-    break;
-   }
+    getUserInput();
 
-   if(hasNotice())
-    std::cout << displayNotice();
-   
+    switch (game_level)
+    {
+    case 1:
+      easyLevel(); // 3 range of numbers
+      break;
+    case 2:
+      mediumLevel(); // 5 range of numbers
+      break;
+    case 3:
+      hardLevel(); // 10 range of numbers
+      break;
+    case 4:
+      settings();
+      break;
+    default:
+      exit_game = true;
+      setSuccessNotice("\n\tThank you for using the game. Bye!");
+      break;
+    }
+
+    if(hasNotice())
+      std::cout << displayNotice();
+
+   } while(!exit_game);
+ }
+
+ void loadEnv(){
+  std::string row_data, tmp_key, tmp_value;
+
+  std::ifstream Settings(".env");
+
+  if(Settings.is_open()){
+    while(getline(Settings, row_data)){
+      std::istringstream scanner(row_data);
+      getline(scanner, tmp_key, ':');
+      getline(scanner, tmp_value);
+
+      envInsert(tmp_key, tmp_value);
+    }
+  }
+
+  Settings.close();
+ }
+
+ void envInsert(std::string tmp_key, std::string tmp_value){
+  KeyValuePair pair;
+
+  removeExtraSpaces(tmp_value);
+  
+  pair.key = tmp_key;
+  pair.value = tmp_value;
+
+  ENV.push_back(pair);
+ }
+
+ std::string searchValue(std::string tmp_key){
+  for(size_t i = 0; i < ENV.size(); i++){
+   if(ENV[i].key == tmp_key)
+    return ENV[i].value; 
+  }
+  return "";
  }
 
  void startNow(int limit, int win_limit, std::string level){
@@ -65,20 +115,122 @@ class Game: public Base, public Notice, public View {
   if(user_win_count == win_limit){
     setSuccessNotice("\n\tCongratulations, You Win!");
   }else {
-    setErrorNotice("\n\tComputer Wins!, Better luck next time! :)");
+    setErrorNotice("\n\n\n\tComputer Wins!, Better luck next time! :)");
   }
+
+  resetUserComputerWinningScores();
+ }
+
+ void resetUserComputerWinningScores(){
+  user_win_count = computer_win_count = round_counter= 0;
  }
 
  void easyLevel(){
-  startNow(3, 3, "easy");
+  startNow(
+    stoi(searchValue("range_number_limit_easy_level")), 
+    stoi(searchValue("winning_limit_easy_level")), 
+    "easy"
+  );
  }
 
  void mediumLevel(){
-  startNow(7, 5, "medium");
+  startNow(
+    stoi(searchValue("range_number_limit_medium_level")), 
+    stoi(searchValue("winning_limit_medium_level")), 
+    "medium"
+  );
  }
 
  void hardLevel(){
-  startNow(10, 7, "hard");
+  startNow(
+    stoi(searchValue("range_number_limit_hard_level")), 
+    stoi(searchValue("winning_limit_hard_level")), 
+    "hard"
+  );
+ }
+
+ void settings(){
+  std::string edit_answer;
+  std::cout << "\n\tSettings" << std::endl;
+
+  // display settings variables
+  displaySettingsVariables();
+
+  std::cout << "\n\tWould you like to edit? <y or n>: ";
+  std::cin >> edit_answer;
+
+  if(edit_answer == "y"){
+   updateSettingsVariables();
+  }
+
+ }
+
+ void updateSettingsVariables(){
+  std::string row_data, tmp_key, tmp_value, setting_value, setting_key, update_setting;
+  std::vector<std::string> updatedSettings;
+  std::ifstream Settings(".env");
+
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+  if(Settings.is_open()){
+    while(getline(Settings, row_data)){
+      std::istringstream scanner(row_data);
+      getline(scanner, tmp_key, ':');
+      getline(scanner, tmp_value);
+
+      setting_key = tmp_key;
+      setting_value = "";
+
+      replaceChar(setting_key, '_', ' ');
+      toUpperCase(setting_key);
+      removeExtraSpaces(tmp_value);
+
+      std::cout << "\n\t" << setting_key << "[" << tmp_value << "]: ";
+      getline(std::cin, setting_value);
+
+      if(setting_value != "")
+        tmp_value = setting_value;
+
+      update_setting = tmp_key + ": " + tmp_value;
+
+      updatedSettings.push_back(update_setting);
+    }
+  }else{
+    setErrorNotice("\nUnable to open the .env file");
+  }
+
+  Settings.close();
+
+  // create a new file and load the new list on .env
+  std::ofstream WriteSettings(".env");
+
+  if(WriteSettings.is_open()){
+    for(size_t i = 0; i < updatedSettings.size(); i++){
+      if(updatedSettings[i] != "")
+        WriteSettings << updatedSettings[i] << "\n";
+    }
+
+    WriteSettings.close();
+
+    // Clear the vector to reset it
+    ENV.clear();
+
+    loadEnv();
+  }else {
+    setErrorNotice("\nUnable to create and open .env file");
+  }
+ }
+
+ void displaySettingsVariables(){
+   std::string tmp_key;
+   for(size_t i = 0; i < ENV.size(); i++){
+    tmp_key = ENV[i].key;
+
+    replaceChar(tmp_key, '_', ' ');
+    toUpperCase(tmp_key);
+    
+    std::cout << "\t" << tmp_key << ": " << ENV[i].value << std::endl; 
+   }
  }
 
  std::vector<int> generateRangeRandomNumbers(int limit){
@@ -149,7 +301,8 @@ class Game: public Base, public Notice, public View {
    "\t1. Easy\n"
    "\t2. Medium\n"
    "\t3. Hard\n"
-   "\t4. Exit\n\n" + ANSI_COLOR_RESET;
+   "\t4. Settings\n"
+   "\t5. Exit\n\n" + ANSI_COLOR_RESET;
  }
 
  void getUserInput(){
