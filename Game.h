@@ -56,14 +56,22 @@ class Game: public Base, public Notice, public View {
     case 4:
       settings();
       break;
-    default:
+    case 5:
       exit_game = true;
       setSuccessNotice("\n\tThank you for using the game. Bye!");
       break;
+    default:
+      std::cin.clear();
+      std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      setErrorNotice("\n\tInvalid Input.");
+      break;
     }
 
-    if(hasNotice())
+    if(hasNotice()){
       std::cout << displayNotice();
+      resetNotice();
+    }
+      
 
    } while(!exit_game);
  }
@@ -95,14 +103,6 @@ class Game: public Base, public Notice, public View {
   pair.value = tmp_value;
 
   ENV.push_back(pair);
- }
-
- std::string searchValue(std::string tmp_key){
-  for(size_t i = 0; i < ENV.size(); i++){
-   if(ENV[i].key == tmp_key)
-    return ENV[i].value; 
-  }
-  return "";
  }
 
  void startNow(int limit, int win_limit, std::string level){
@@ -158,11 +158,10 @@ class Game: public Base, public Notice, public View {
 
   std::cout << "\n\tWould you like to edit? <y or n>: ";
   std::cin >> edit_answer;
-
+  
   if(edit_answer == "y"){
    updateSettingsVariables();
   }
-
  }
 
  void updateSettingsVariables(){
@@ -233,6 +232,63 @@ class Game: public Base, public Notice, public View {
    }
  }
 
+ void getUserInput(){
+  std::cout << "\tSelect the level of difficulty: ";
+  std::cin >> game_level;
+ }
+
+ void startTheGame(int limit){
+  int user_guess, computer_chosen_number, random_index;
+  bool validGuessNumber = false;
+  std::vector<int> random_numbers = generateRangeRandomNumbers(limit);
+  random_index = std::rand() % random_numbers.size();
+  computer_chosen_number = random_numbers[random_index];
+
+  std::cout << ANSI_COLOR_ORANGE << "\n\tRound " << round_counter << ANSI_COLOR_RESET;
+ 
+  do {
+
+    if(hasNotice())
+      std::cout << displayNotice();
+
+    std::cout << "\n\tEnter Your Guess Number from: " << ANSI_COLOR_GREEN << displayRandomRangeNumbers(random_numbers) << ANSI_COLOR_RESET << ": ";
+    if (!(std::cin >> user_guess)) {
+      resetUserScanInput("\n\tInvalid Guess Number");
+    } else {
+      if(!validateIfOutOfRange(random_numbers, user_guess)){
+        resetNotice();
+
+        validGuessNumber = true;
+
+        if(user_guess == computer_chosen_number){
+          user_win_count++;
+        }else{
+          computer_win_count++;
+        }
+
+        std::cout << ANSI_COLOR_GREEN << "\n\tUser Win: " << user_win_count << ANSI_COLOR_RESET;
+        std::cout << ANSI_COLOR_RED << "\n\tComputer Win: " << computer_win_count << std::endl << ANSI_COLOR_RESET;
+      }else{
+        resetUserScanInput("\n\tOut of Range Guess Number.");
+      }
+    }
+  } while(!validGuessNumber);
+ }
+
+ void resetUserScanInput(std::string error_message){
+  std::cin.clear();
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  setErrorNotice(error_message);
+ }
+
+ std::string searchValue(std::string tmp_key){
+  for(size_t i = 0; i < ENV.size(); i++){
+   if(ENV[i].key == tmp_key)
+    return ENV[i].value; 
+  }
+  return "";
+ }
+
  std::vector<int> generateRangeRandomNumbers(int limit){
   std::srand(std::time(nullptr));
   std::vector<int> randomNumbers;
@@ -273,26 +329,13 @@ class Game: public Base, public Notice, public View {
   return randomNumbersDisplay;
  }
 
- void startTheGame(int limit){
-  int user_guess, computer_chosen_number, random_index;
-  std::vector<int> random_numbers = generateRangeRandomNumbers(limit);
-  random_index = std::rand() % random_numbers.size();
-  computer_chosen_number = random_numbers[random_index];
-
-  std::cout << ANSI_COLOR_ORANGE << "\n\tRound " << round_counter << ANSI_COLOR_RESET;
-  std::cout << "\n\tEnter Your Guess Number from: " << ANSI_COLOR_GREEN << displayRandomRangeNumbers(random_numbers) << ANSI_COLOR_RESET << ": ";
-  std::cin >> user_guess;
-
-  if(user_guess == computer_chosen_number){
-   user_win_count++;
-  //  std::cout << ANSI_COLOR_GREEN << "\n\tYou Win!" << ANSI_COLOR_RESET;
-  }else{
-   computer_win_count++;
-  //  std::cout << ANSI_COLOR_RED << "\n\tComputer Wins!" << ANSI_COLOR_RESET;
+ bool validateIfOutOfRange(std::vector<int> randomNumbers, int user_input){
+  for (int i = 0; i < randomNumbers.size(); ++i){
+    if(randomNumbers[i] == user_input)
+     return false;
   }
-
-  std::cout << ANSI_COLOR_GREEN << "\n\tUser Win: " << user_win_count << ANSI_COLOR_RESET;
-  std::cout << ANSI_COLOR_RED << "\n\tComputer Win: " << computer_win_count << std::endl << ANSI_COLOR_RESET;
+  
+  return true;
  }
 
  std::string displayMenu(){
@@ -303,11 +346,6 @@ class Game: public Base, public Notice, public View {
    "\t3. Hard\n"
    "\t4. Settings\n"
    "\t5. Exit\n\n" + ANSI_COLOR_RESET;
- }
-
- void getUserInput(){
-  std::cout << "\tSelect the level of difficulty: ";
-  std::cin >> game_level;
  }
 };
 #endif
